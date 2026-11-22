@@ -2,6 +2,8 @@ import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
 import LoginPage from './pages/LoginPage';
+import VehicleDetailsPage from './pages/VehicleDetailsPage';
+import VehiclesPage from './pages/VehiclesPage';
 import { useAuth } from './auth';
 
 function Home() {
@@ -9,7 +11,16 @@ function Home() {
   return (
     <section className="card">
       <h1>Welcome, {session?.name}</h1>
-      <p className="muted">You are signed in as a {session?.role}. The pages are coming next.</p>
+      <p className="muted">You are signed in as a {session?.role}.</p>
+    </section>
+  );
+}
+
+function NotFound() {
+  return (
+    <section className="card">
+      <h1>Page not found</h1>
+      <p className="muted">That page does not exist.</p>
     </section>
   );
 }
@@ -26,6 +37,9 @@ export default function App() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route path="/vehicles" element={<VehiclesPage />} />
+        <Route path="/vehicles/:id" element={<VehicleDetailsPage />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

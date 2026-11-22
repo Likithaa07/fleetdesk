@@ -78,3 +78,13 @@ th { font-size: 0.85rem; color: var(--muted); }
   .content { padding: 0.75rem; }
   .card { padding: 0.85rem; }
 }
+
+/* vehicles */
+.vehicle-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.vehicle-card { margin-bottom: 0; }
+.vehicle-card p { margin: 0.35rem 0 0; }
+.rego { font-weight: 700; font-size: 1.1rem; }
+.details { display: grid; gap: 0.75rem 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 0; }
+.details dt { font-size: 0.85rem; color: var(--muted); }
+.details dd { margin: 0.15rem 0 0; font-weight: 600; }
+.details .badge { margin-left: 0.5rem; }
