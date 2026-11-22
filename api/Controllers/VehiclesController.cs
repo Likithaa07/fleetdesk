@@ -136,4 +136,119 @@ public class VehiclesController : ControllerBase
             Services = services
         };
     }
+
+    // POST /api/vehicles (Manager only)
+    [HttpPost]
+    [Authorize(Roles = "Manager")]
+    public async Task<ActionResult<VehicleDto>> Create(VehicleRequest request)
+    {
+        var error = Validate(request, out var status);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        var rego = request.Rego.Trim().ToUpperInvariant();
+        if (await _db.Vehicles.AnyAsync(v => v.Rego == rego))
+        {
+            return Conflict(new { message = $"A vehicle with rego {rego} already exists." });
+        }
+
+        var vehicle = new Vehicle();
+        Apply(vehicle, request, rego, status);
+        _db.Vehicles.Add(vehicle);
+        await _db.SaveChangesAsync();
+
+        await WriteAuditAsync("Created", vehicle.Id);
+        return CreatedAtAction(nameof(GetById), new { id = vehicle.Id }, ToDto(vehicle));
+    }
+
+    // PUT /api/vehicles/5 (Manager only)
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Manager")]
+    public async Task<ActionResult<VehicleDto>> Update(int id, VehicleRequest request)
+    {
+        var error = Validate(request, out var status);
+        if (error is not null)
+        {
+            return BadRequest(new { message = error });
+        }
+
+        var vehicle = await _db.Vehicles.FirstOrDefaultAsync(v => v.Id == id);
+        if (vehicle is null)
+        {
+            return NotFound(new { message = $"Vehicle {id} not found." });
+        }
+
+        var rego = request.Rego.Trim().ToUpperInvariant();
+        if (await _db.Vehicles.AnyAsync(v => v.Rego == rego && v.Id != id))
+        {
+            return Conflict(new { message = $"A vehicle with rego {rego} already exists." });
+        }
+
+        Apply(vehicle, request, rego, status);
+        await _db.SaveChangesAsync();
+
+        await WriteAuditAsync("Updated", vehicle.Id);
+        return ToDto(vehicle);
+    }
+
+    private static string? Validate(VehicleRequest r, out VehicleStatus status)
+    {
+        status = VehicleStatus.Available;
+
+        if (string.IsNullOrWhiteSpace(r.Rego) || string.IsNullOrWhiteSpace(r.Make) ||
+            string.IsNullOrWhiteSpace(r.Model) || string.IsNullOrWhiteSpace(r.Location))
+        {
+            return "Rego, make, model and location are required.";
+        }
+
+        if (!Enum.TryParse(r.Status, true, out status) || !Enum.IsDefined(status))
+        {
+            return "Unknown status. Use Available or InService.";
+        }
+
+        if (r.RegoExpiry == default || r.LeaseEnd == default || r.NextServiceDue == default)
+        {
+            return "Rego expiry, lease end and next service due dates are required.";
+        }
+
+        return null;
+    }
+
+    private static void Apply(Vehicle v, VehicleRequest r, string rego, VehicleStatus status)
+    {
+        v.Rego = rego;
+        v.Make = r.Make.Trim();
+        v.Model = r.Model.Trim();
+        v.Year = r.Year;
+        v.Location = r.Location.Trim();
+        v.Status = status;
+        v.OdometerKm = r.OdometerKm;
+        v.RegoExpiry = r.RegoExpiry;
+        v.LeaseEnd = r.LeaseEnd;
+        v.NextServiceDue = r.NextServiceDue;
+    }
+
+    private static VehicleDto ToDto(Vehicle v) => new()
+    {
+        Id = v.Id,
+        Rego = v.Rego,
+        Make = v.Make,
+        Model = v.Model,
+        Year = v.Year,
+        Location = v.Location,
+        Status = v.Status.ToString(),
+        OdometerKm = v.OdometerKm,
+        RegoExpiry = v.RegoExpiry,
+        LeaseEnd = v.LeaseEnd,
+        NextServiceDue = v.NextServiceDue
+    };
+
+    private async Task WriteAuditAsync(string action, int vehicleId)
+    {
+        int? userId = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var uid) ? uid : null;
+        _db.AuditLogs.Add(new AuditLog { UserId = userId, Action = action, Entity = "Vehicle", EntityId = vehicleId });
+        await _db.SaveChangesAsync();
+    }
 }
