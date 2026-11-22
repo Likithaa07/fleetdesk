@@ -1,6 +1,7 @@
 using FleetDesk.Api.Data;
 using FleetDesk.Api.Dtos;
 using FleetDesk.Api.Models;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -69,5 +70,70 @@ public class VehiclesController : ControllerBase
             .ToListAsync();
 
         return vehicles;
+    }
+
+    // GET /api/vehicles/5
+    // Managers see every booking. Drivers only see their own bookings (BR6).
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<VehicleDetailsDto>> GetById(int id)
+    {
+        var vehicle = await _db.Vehicles.AsNoTracking().FirstOrDefaultAsync(v => v.Id == id);
+        if (vehicle is null)
+        {
+            return NotFound(new { message = $"Vehicle {id} not found." });
+        }
+
+        var isManager = User.IsInRole("Manager");
+        int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId);
+
+        var bookingsQuery = _db.Bookings.AsNoTracking().Where(b => b.VehicleId == id);
+        if (!isManager)
+        {
+            bookingsQuery = bookingsQuery.Where(b => b.UserId == userId);
+        }
+
+        var bookings = await bookingsQuery
+            .OrderByDescending(b => b.StartDate)
+            .Select(b => new BookingHistoryDto
+            {
+                Id = b.Id,
+                StartDate = b.StartDate,
+                EndDate = b.EndDate,
+                Purpose = b.Purpose,
+                Status = b.Status.ToString(),
+                DriverName = b.User!.Name
+            })
+            .ToListAsync();
+
+        var services = await _db.Services.AsNoTracking()
+            .Where(s => s.VehicleId == id)
+            .OrderByDescending(s => s.Date)
+            .Select(s => new ServiceHistoryDto
+            {
+                Id = s.Id,
+                Date = s.Date,
+                OdometerKm = s.OdometerKm,
+                Type = s.Type,
+                Cost = s.Cost,
+                Notes = s.Notes
+            })
+            .ToListAsync();
+
+        return new VehicleDetailsDto
+        {
+            Id = vehicle.Id,
+            Rego = vehicle.Rego,
+            Make = vehicle.Make,
+            Model = vehicle.Model,
+            Year = vehicle.Year,
+            Location = vehicle.Location,
+            Status = vehicle.Status.ToString(),
+            OdometerKm = vehicle.OdometerKm,
+            RegoExpiry = vehicle.RegoExpiry,
+            LeaseEnd = vehicle.LeaseEnd,
+            NextServiceDue = vehicle.NextServiceDue,
+            Bookings = bookings,
+            Services = services
+        };
     }
 }
