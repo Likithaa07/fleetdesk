@@ -94,4 +94,70 @@ public class BookingsController : ControllerBase
             Status = booking.Status.ToString()
         });
     }
+
+    // GET /api/bookings
+    // Drivers see only their own bookings (BR6). Managers see every booking.
+    [HttpGet]
+    public async Task<ActionResult<List<BookingDto>>> GetAll()
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var query = _db.Bookings.AsNoTracking().AsQueryable();
+        if (!User.IsInRole("Manager"))
+        {
+            query = query.Where(b => b.UserId == userId);
+        }
+
+        var bookings = await query
+            .OrderByDescending(b => b.StartDate)
+            .ThenBy(b => b.Id)
+            .Select(b => new BookingDto
+            {
+                Id = b.Id,
+                VehicleId = b.VehicleId,
+                Rego = b.Vehicle!.Rego,
+                DriverName = b.User!.Name,
+                StartDate = b.StartDate,
+                EndDate = b.EndDate,
+                Purpose = b.Purpose,
+                Status = b.Status.ToString()
+            })
+            .ToListAsync();
+
+        return bookings;
+    }
+
+    // DELETE /api/bookings/5
+    // Cancels the booking (the row is kept as a record). Drivers can only cancel their own;
+    // someone else's booking returns 404 so its existence isn't revealed. Managers can cancel any.
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.Id == id);
+        if (booking is null || (!User.IsInRole("Manager") && booking.UserId != userId))
+        {
+            return NotFound(new { message = $"Booking {id} not found." });
+        }
+
+        if (booking.Status == BookingStatus.Cancelled)
+        {
+            return Conflict(new { message = "This booking is already cancelled." });
+        }
+
+        booking.Status = BookingStatus.Cancelled;
+        await _db.SaveChangesAsync();
+
+        _db.AuditLogs.Add(new AuditLog { UserId = userId, Action = "Cancelled", Entity = "Booking", EntityId = booking.Id });
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
