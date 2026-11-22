@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/api.tests/">
-    <Project Path="api.tests/FleetDesk.Api.Tests.csproj" />
-  </Folder>
-  <Folder Name="/api/">
-    <Project Path="api/FleetDesk.Api.csproj" />
-  </Folder>
-</Solution>
