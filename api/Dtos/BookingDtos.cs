@@ -17,6 +17,7 @@ public class BookingDto
     public int Id { get; set; }
     public int VehicleId { get; set; }
     public string Rego { get; set; } = string.Empty;
+    public string DriverName { get; set; } = string.Empty;
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public string Purpose { get; set; } = string.Empty;
