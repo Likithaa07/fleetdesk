@@ -3,7 +3,9 @@ import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
 import BookCarPage from './pages/BookCarPage';
 import BookingsPage from './pages/BookingsPage';
+import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
+import LogServicePage from './pages/LogServicePage';
 import VehicleDetailsPage from './pages/VehicleDetailsPage';
 import VehiclesPage from './pages/VehiclesPage';
 import { useAuth } from './auth';
@@ -39,9 +41,25 @@ export default function App() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth role="Manager">
+              <DashboardPage />
+            </RequireAuth>
+          }
+        />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/:id" element={<VehicleDetailsPage />} />
         <Route path="/vehicles/:id/book" element={<BookCarPage />} />
+        <Route
+          path="/vehicles/:id/log-service"
+          element={
+            <RequireAuth role="Manager">
+              <LogServicePage />
+            </RequireAuth>
+          }
+        />
         <Route path="/bookings" element={<BookingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
