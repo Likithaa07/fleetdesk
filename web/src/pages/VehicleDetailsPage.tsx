@@ -35,6 +35,11 @@ function VehicleBody({ vehicle, isDriver }: { vehicle: VehicleDetails; isDriver:
         <VehicleStatusBadge status={vehicle.status} />
       </div>
       <p className="muted">{`${vehicle.year} ${vehicle.make} ${vehicle.model}`}</p>
+      {vehicle.status === 'Available' && (
+        <p>
+          <Link to={`/vehicles/${vehicle.id}/book`}>Book this car</Link>
+        </p>
+      )}
 
       <div className="card">
         <dl className="details">
