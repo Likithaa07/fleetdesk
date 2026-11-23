@@ -1,6 +1,8 @@
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
+import BookCarPage from './pages/BookCarPage';
+import BookingsPage from './pages/BookingsPage';
 import LoginPage from './pages/LoginPage';
 import VehicleDetailsPage from './pages/VehicleDetailsPage';
 import VehiclesPage from './pages/VehiclesPage';
@@ -39,6 +41,8 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/:id" element={<VehicleDetailsPage />} />
+        <Route path="/vehicles/:id/book" element={<BookCarPage />} />
+        <Route path="/bookings" element={<BookingsPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
